@@ -118,7 +118,11 @@ let SnapEditClient = class SnapEditClient {
     }
     async removeBg(image) {
         const fd = new form_data_1.default();
-        fd.append('image', image, { filename: 'image.jpg' });
+        fd.append('input_image', image, {
+            filename: 'image.jpg',
+            contentType: 'image/jpeg',
+        });
+        console.log(fd);
         try {
             const res = await axios_1.default.post(this.baseUrl + ENDPOINTS.removeBg, fd, {
                 headers: { ...fd.getHeaders(), ...this.getHeaders() },
