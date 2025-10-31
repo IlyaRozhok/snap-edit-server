@@ -83,9 +83,18 @@ let SnapEditController = class SnapEditController {
         console.log('imgProcessedsed', imgProcessed);
         return (0, queue_1.runWithLimit)(() => (0, retry_1.withRetry)(() => this.client.erase(imgProcessed, maskBrush.buffer, body.session_id)));
     }
-    async save(sessionId) {
-        if (!sessionId)
-            throw new common_1.BadRequestException('session_id required');
+    async save(filePreview, file, sessionId, previewMaskToSave, previewImageToSave, originalLargeImage) {
+        if (!previewMaskToSave) {
+            throw new common_1.BadRequestException('previewMaskToSave required');
+        }
+        if (!previewMaskToSave) {
+            throw new common_1.BadRequestException('previewImageToSave required. You can provide SessionId');
+        }
+        if (!originalLargeImage) {
+            throw new common_1.BadRequestException('originalLargeImage required');
+        }
+        assertFile(file, false);
+        const image = filePreview.find((f) => f.fieldname === 'original_preview_image');
         return (0, queue_1.runWithLimit)(() => (0, retry_1.withRetry)(() => this.client.save(sessionId)));
     }
     async enhance(file, quality = 'fine') {
@@ -123,9 +132,14 @@ __decorate([
 ], SnapEditController.prototype, "erase", null);
 __decorate([
     (0, common_1.Post)('save'),
-    __param(0, (0, common_1.Body)('session_id')),
+    __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.UploadedFile)()),
+    __param(2, (0, common_1.Body)('sessionId')),
+    __param(3, (0, common_1.Body)('previewMaskToSave')),
+    __param(4, (0, common_1.Body)('previewImageToSave')),
+    __param(5, (0, common_1.Body)('originalLargeImage')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, Object, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], SnapEditController.prototype, "save", null);
 __decorate([

@@ -4,4 +4,4 @@ export declare function resizeByLongestSide(buffer: Buffer, maxSide: number): Pr
 export interface ProcessImageOptions {
     maxSize: number;
 }
-export declare function processImage(buffer: Buffer, options: ProcessImageOptions): Promise<Buffer>;
+export declare const processImage: (buffer: Buffer, options: ProcessImageOptions) => Promise<Buffer>;

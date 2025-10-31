@@ -82,8 +82,30 @@ export class SnapEditController {
   }
 
   @Post('save')
-  async save(@Body('session_id') sessionId: string) {
-    if (!sessionId) throw new BadRequestException('session_id required');
+  async save(
+    @UploadedFile() filePreview: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('sessionId') sessionId: string,
+    @Body('previewMaskToSave') previewMaskToSave: string,
+    @Body('previewImageToSave') previewImageToSave: string,
+    @Body('originalLargeImage') originalLargeImage: string,
+  ) {
+    if (!previewMaskToSave) {
+      throw new BadRequestException('previewMaskToSave required');
+    }
+
+    if (!previewMaskToSave) {
+      throw new BadRequestException(
+        'previewImageToSave required. You can provide SessionId',
+      );
+    }
+
+    if (!originalLargeImage) {
+      throw new BadRequestException('originalLargeImage required');
+    }
+
+    assertFile(file, false);
+    const image = filePreview.find((f) => f.fieldname === 'original_preview_image');
     return runWithLimit(() => withRetry(() => this.client.save(sessionId)));
   }
 

@@ -13,7 +13,6 @@ let BearerGuard = class BearerGuard {
         const request = context.switchToHttp().getRequest();
         const authHeader = request.headers['authorization'];
         const appToken = process.env.APP_BEARER_TOKEN;
-        console.log('appToken', appToken);
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             throw new common_1.UnauthorizedException('No bearer token');
         }

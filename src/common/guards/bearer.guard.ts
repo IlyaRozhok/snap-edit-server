@@ -12,7 +12,6 @@ export class BearerGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers['authorization'];
     const appToken = process.env.APP_BEARER_TOKEN;
-    console.log('appToken', appToken);
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('No bearer token');
     }

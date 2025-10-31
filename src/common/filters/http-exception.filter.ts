@@ -46,7 +46,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception && typeof exception === 'object') {
       message = exception.message || message;
-      // Preserve custom error code if provided
       if (exception.code) {
         code = exception.code;
       }

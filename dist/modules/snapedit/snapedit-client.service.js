@@ -16,6 +16,7 @@ exports.SnapEditClient = void 0;
 const common_1 = require("@nestjs/common");
 const axios_1 = __importDefault(require("axios"));
 const form_data_1 = __importDefault(require("form-data"));
+const extractErrorMessage_1 = require("../../common/utils/extractErrorMessage");
 const ENDPOINTS = {
     autoSuggest: '/object_removal/v1/auto_suggest',
     erase: '/object_removal/v1/erase',
@@ -25,44 +26,12 @@ const ENDPOINTS = {
     removeBg: '/background_removal/v1/erase',
 };
 function toUpstreamError(e) {
-    let message = 'SnapEdit upstream error';
-    if (e.response && e.response.data) {
-        const data = e.response.data;
-        if (typeof data === 'string') {
-            try {
-                const parsed = JSON.parse(data);
-                if (parsed.error) {
-                    message = typeof parsed.error === 'string'
-                        ? parsed.error
-                        : parsed.error.message || parsed.error;
-                }
-                else {
-                    message = data;
-                }
-            }
-            catch {
-                message = data;
-            }
-        }
-        else if (typeof data === 'object') {
-            if (data.error) {
-                message = typeof data.error === 'string'
-                    ? data.error
-                    : data.error.message || String(data.error);
-            }
-            else if (data.message) {
-                message = data.message;
-            }
-            else {
-                message = 'SnapEdit upstream error';
-            }
-        }
-    }
-    else if (e.message) {
-        message = e.message;
-    }
+    const fallback = 'SnapEdit upstream error';
+    const data = e?.response?.data;
+    const messageFromData = (0, extractErrorMessage_1.extractErrorMessage)(data);
+    const message = messageFromData || e?.message || fallback;
     const err = new Error(message);
-    err.response = e.response;
+    err.response = e?.response;
     err.code = 'UPSTREAM_ERROR';
     throw err;
 }
@@ -116,9 +85,15 @@ let SnapEditClient = class SnapEditClient {
             toUpstreamError(e);
         }
     }
-    async save(sessionId) {
+    async save(image, sessionId, previewMaskToSave, previewImageToSave, originalLargeImage) {
         const fd = new form_data_1.default();
-        fd.append('session_id', sessionId);
+        fd.append('original_preview_image', image, { filename: 'image.jpg' });
+        fd.append('preview_mask_to_save', previewMaskToSave);
+        fd.append('preview_image_to_save', previewImageToSave);
+        fd.append('original_large_image', originalLargeImage);
+        if (sessionId) {
+            fd.append('session_id', sessionId);
+        }
         try {
             const res = await axios_1.default.post(this.baseUrl + ENDPOINTS.save, fd, {
                 headers: { ...fd.getHeaders(), ...this.getHeaders() },

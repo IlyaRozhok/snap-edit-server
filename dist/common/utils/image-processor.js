@@ -3,10 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.processImage = void 0;
 exports.validateImage = validateImage;
 exports.convertHeicToJpeg = convertHeicToJpeg;
 exports.resizeByLongestSide = resizeByLongestSide;
-exports.processImage = processImage;
 const sharp_1 = __importDefault(require("sharp"));
 async function validateImage(buffer, mime, maxSizeMB = 50) {
     const allowed = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
@@ -42,7 +42,7 @@ function isHeic(mime) {
         mime === 'heic' ||
         mime === 'heif');
 }
-async function processImage(buffer, options) {
+const processImage = async (buffer, options) => {
     let img = (0, sharp_1.default)(buffer, { failOnError: false });
     let metadata = await img.metadata();
     let mime = metadata.format;
@@ -59,7 +59,7 @@ async function processImage(buffer, options) {
     const width = metadata.width || 0;
     const height = metadata.height || 0;
     const max = options.maxSize;
-    let resizeOptions = {};
+    const resizeOptions = {};
     if (width > max || height > max) {
         if (width >= height) {
             resizeOptions.width = max;
@@ -71,5 +71,6 @@ async function processImage(buffer, options) {
     }
     img = img.jpeg({ quality: 92, chromaSubsampling: '4:4:4' });
     return img.toBuffer();
-}
+};
+exports.processImage = processImage;
 //# sourceMappingURL=image-processor.js.map

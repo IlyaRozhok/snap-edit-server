@@ -1,1 +1,1 @@
-export declare function runWithLimit<T>(fn: () => Promise<T>): Promise<T>;
+export declare const runWithLimit: <T>(fn: () => Promise<T>) => Promise<T>;

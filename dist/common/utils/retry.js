@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.withRetry = withRetry;
-function randomJitter(base, spread = 300) {
+const randomJitter = (base, spread = 300) => {
     return base + Math.floor(Math.random() * spread);
-}
+};
 async function withRetry(fn) {
     const delays429 = [2000, 4000, 8000];
     const delaysNet = [1000, 2000];
@@ -19,7 +19,8 @@ async function withRetry(fn) {
             if (e?.response?.status === 429 && attempt < delays429.length) {
                 delay = randomJitter(delays429[attempt]);
             }
-            else if ((e?.code === 'ECONNRESET' || e?.code === 'ETIMEDOUT') && attempt < delaysNet.length) {
+            else if ((e?.code === 'ECONNRESET' || e?.code === 'ETIMEDOUT') &&
+                attempt < delaysNet.length) {
                 delay = randomJitter(delaysNet[attempt]);
             }
             else {

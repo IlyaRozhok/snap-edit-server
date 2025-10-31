@@ -1,6 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import axios from 'axios';
 import FormData from 'form-data';
+import { extractErrorMessage } from 'src/common/utils/extractErrorMessage';
 
 const ENDPOINTS = {
   autoSuggest: '/object_removal/v1/auto_suggest',
@@ -12,39 +13,12 @@ const ENDPOINTS = {
 };
 
 function toUpstreamError(e: any) {
-  let message = 'SnapEdit upstream error';
-  if (e.response && e.response.data) {
-    const data = e.response.data;
-    // Try to extract error message from various possible structures
-    if (typeof data === 'string') {
-      try {
-        const parsed = JSON.parse(data);
-        if (parsed.error) {
-          message = typeof parsed.error === 'string' 
-            ? parsed.error 
-            : parsed.error.message || parsed.error;
-        } else {
-          message = data;
-        }
-      } catch {
-        message = data;
-      }
-    } else if (typeof data === 'object') {
-      if (data.error) {
-        message = typeof data.error === 'string' 
-          ? data.error 
-          : data.error.message || String(data.error);
-      } else if (data.message) {
-        message = data.message;
-      } else {
-        message = 'SnapEdit upstream error';
-      }
-    }
-  } else if (e.message) {
-    message = e.message;
-  }
+  const fallback = 'SnapEdit upstream error';
+  const data = e?.response?.data;
+  const messageFromData = extractErrorMessage(data);
+  const message = messageFromData || e?.message || fallback;
   const err: any = new Error(message);
-  err.response = e.response;
+  err.response = e?.response;
   err.code = 'UPSTREAM_ERROR';
   throw err;
 }
@@ -112,9 +86,22 @@ export class SnapEditClient {
     }
   }
 
-  async save(sessionId: string) {
+  async save(
+    image: Buffer,
+    sessionId: string,
+    previewMaskToSave: string,
+    previewImageToSave: string,
+    originalLargeImage: string,
+  ) {
     const fd = new FormData();
-    fd.append('session_id', sessionId);
+    fd.append('original_preview_image', image, { filename: 'image.jpg' });
+    fd.append('preview_mask_to_save', previewMaskToSave);
+    fd.append('preview_image_to_save', previewImageToSave);
+    fd.append('original_large_image', originalLargeImage);
+
+    if (sessionId) {
+      fd.append('session_id', sessionId);
+    }
     try {
       const res = await axios.post(this.baseUrl + ENDPOINTS.save, fd, {
         headers: { ...fd.getHeaders(), ...this.getHeaders() },

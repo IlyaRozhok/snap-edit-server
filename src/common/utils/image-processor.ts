@@ -15,7 +15,6 @@ export async function validateImage(
 }
 
 export async function convertHeicToJpeg(buffer: Buffer): Promise<Buffer> {
-  // HEIC->JPEG: sharp автоматически определяет формат
   return sharp(buffer).jpeg().toBuffer();
 }
 
@@ -50,36 +49,31 @@ function isHeic(mime: string) {
   );
 }
 
-export async function processImage(
+export const processImage = async (
   buffer: Buffer,
   options: ProcessImageOptions,
-): Promise<Buffer> {
+): Promise<Buffer> => {
   let img = sharp(buffer, { failOnError: false });
   let metadata = await img.metadata();
 
-  // Определяем MIME
   let mime = metadata.format;
 
-  // HEIC/HEIF поддержка
   if (isHeic(mime || '')) {
     const heifSupported = (sharp.format as any)?.heif?.input;
     if (!heifSupported) {
       throw new Error('HEIC/HEIF format not supported by sharp.');
     }
-    // sharp сам декодирует HEIC/HEIF → JPEG, если вызвать .jpeg()
     img = sharp(buffer).jpeg();
     metadata = await img.metadata();
     mime = 'jpeg';
   }
 
-  // Нормализация ориентации
   img = img.rotate();
 
-  // Ресайз по длинной стороне (width > height ? width : height → maxSize)
   const width = metadata.width || 0;
   const height = metadata.height || 0;
   const max = options.maxSize;
-  let resizeOptions: { width?: number; height?: number } = {};
+  const resizeOptions: { width?: number; height?: number } = {};
   if (width > max || height > max) {
     if (width >= height) {
       resizeOptions.width = max;
@@ -89,7 +83,6 @@ export async function processImage(
     img = img.resize(resizeOptions);
   }
 
-  // Сжимаем в JPEG
   img = img.jpeg({ quality: 92, chromaSubsampling: '4:4:4' });
   return img.toBuffer();
-}
+};

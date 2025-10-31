@@ -1,6 +1,6 @@
-function randomJitter(base: number, spread: number = 300) {
+const randomJitter = (base: number, spread: number = 300) => {
   return base + Math.floor(Math.random() * spread);
-}
+};
 
 export async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   const delays429 = [2000, 4000, 8000];
@@ -16,7 +16,8 @@ export async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       if (e?.response?.status === 429 && attempt < delays429.length) {
         delay = randomJitter(delays429[attempt]);
       } else if (
-        (e?.code === 'ECONNRESET' || e?.code === 'ETIMEDOUT') && attempt < delaysNet.length
+        (e?.code === 'ECONNRESET' || e?.code === 'ETIMEDOUT') &&
+        attempt < delaysNet.length
       ) {
         delay = randomJitter(delaysNet[attempt]);
       } else {
