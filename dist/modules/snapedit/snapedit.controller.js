@@ -77,11 +77,11 @@ let SnapEditController = class SnapEditController {
     async erase(files, body) {
         const image = files.find((f) => f.fieldname === 'image');
         const maskBrush = files.find((f) => f.fieldname === 'mask_brush');
-        const maskBase = files.find((f) => f.fieldname === 'mask_base');
         assertFile(image, true);
         assertFile(maskBrush, false);
         const imgProcessed = await (0, image_processor_1.processImage)(image.buffer, { maxSize: 1200 });
-        return (0, queue_1.runWithLimit)(() => (0, retry_1.withRetry)(() => this.client.erase(imgProcessed, maskBrush.buffer, body.session_id, maskBase?.buffer)));
+        console.log('imgProcessedsed', imgProcessed);
+        return (0, queue_1.runWithLimit)(() => (0, retry_1.withRetry)(() => this.client.erase(imgProcessed, maskBrush.buffer, body.session_id)));
     }
     async save(sessionId) {
         if (!sessionId)

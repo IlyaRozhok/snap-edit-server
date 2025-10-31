@@ -47,6 +47,9 @@ let HttpExceptionFilter = class HttpExceptionFilter {
         }
         else if (exception && typeof exception === 'object') {
             message = exception.message || message;
+            if (exception.code) {
+                code = exception.code;
+            }
         }
         else if (typeof exception === 'string') {
             message = exception;

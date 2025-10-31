@@ -27,8 +27,36 @@ const ENDPOINTS = {
 function toUpstreamError(e) {
     let message = 'SnapEdit upstream error';
     if (e.response && e.response.data) {
-        message =
-            e.response.data?.error?.message || JSON.stringify(e.response.data);
+        const data = e.response.data;
+        if (typeof data === 'string') {
+            try {
+                const parsed = JSON.parse(data);
+                if (parsed.error) {
+                    message = typeof parsed.error === 'string'
+                        ? parsed.error
+                        : parsed.error.message || parsed.error;
+                }
+                else {
+                    message = data;
+                }
+            }
+            catch {
+                message = data;
+            }
+        }
+        else if (typeof data === 'object') {
+            if (data.error) {
+                message = typeof data.error === 'string'
+                    ? data.error
+                    : data.error.message || String(data.error);
+            }
+            else if (data.message) {
+                message = data.message;
+            }
+            else {
+                message = 'SnapEdit upstream error';
+            }
+        }
     }
     else if (e.message) {
         message = e.message;
@@ -74,6 +102,7 @@ let SnapEditClient = class SnapEditClient {
         fd.append('mask_brush', maskBrush, { filename: 'mask_brush.png' });
         if (sessionId)
             fd.append('session_id', sessionId);
+        console.log(fd);
         if (maskBase)
             fd.append('mask_base', maskBase, { filename: 'mask_base.png' });
         try {

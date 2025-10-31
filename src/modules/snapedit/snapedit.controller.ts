@@ -63,17 +63,19 @@ export class SnapEditController {
   ) {
     const image = files.find((f) => f.fieldname === 'image');
     const maskBrush = files.find((f) => f.fieldname === 'mask_brush');
-    const maskBase = files.find((f) => f.fieldname === 'mask_base');
+    // const maskBase = files.find((f) => f.fieldname === 'mask_base');
+
     assertFile(image, true);
     assertFile(maskBrush, false);
     const imgProcessed = await processImage(image.buffer, { maxSize: 1200 });
+    console.log('imgProcessedsed', imgProcessed);
     return runWithLimit(() =>
       withRetry(() =>
         this.client.erase(
           imgProcessed,
           maskBrush.buffer,
           body.session_id,
-          maskBase?.buffer,
+          // maskBase?.buffer,
         ),
       ),
     );
