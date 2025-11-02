@@ -5,7 +5,7 @@ export declare class SnapEditClient {
     private getHeaders;
     autoSuggest(image: Buffer, sessionId?: string): Promise<any>;
     erase(image: Buffer, maskBrush: Buffer, sessionId?: string, maskBase?: Buffer): Promise<any>;
-    save(image: Buffer, sessionId: string, previewMaskToSave: string, previewImageToSave: string, originalLargeImage: string): Promise<any>;
+    save(image: Buffer, sessionId: string, previewMaskFile: Buffer, previewImageToSave: Buffer, originalLargeImage: Express.Multer.File): Promise<any>;
     enhance(image: Buffer, quality: 'fine' | 'ultra'): Promise<any>;
     removeBg(image: Buffer): Promise<any>;
 }

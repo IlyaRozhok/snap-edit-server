@@ -16,7 +16,9 @@ exports.SnapEditClient = void 0;
 const common_1 = require("@nestjs/common");
 const axios_1 = __importDefault(require("axios"));
 const form_data_1 = __importDefault(require("form-data"));
+const sharp_1 = __importDefault(require("sharp"));
 const extractErrorMessage_1 = require("../../common/utils/extractErrorMessage");
+const image_processor_1 = require("../../common/utils/image-processor");
 const ENDPOINTS = {
     autoSuggest: '/object_removal/v1/auto_suggest',
     erase: '/object_removal/v1/erase',
@@ -34,6 +36,18 @@ function toUpstreamError(e) {
     err.response = e?.response;
     err.code = 'UPSTREAM_ERROR';
     throw err;
+}
+async function normalizeLargeToJpeg4000(buf, mime) {
+    let b = buf;
+    if (mime && /heic|heif/i.test(mime)) {
+        b = await (0, image_processor_1.convertHeicToJpeg)(b);
+    }
+    b = await (0, image_processor_1.resizeByLongestSide)(b, 4000);
+    b = await (0, sharp_1.default)(b)
+        .rotate()
+        .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+        .toBuffer();
+    return b;
 }
 let SnapEditClient = class SnapEditClient {
     constructor() {
@@ -85,23 +99,87 @@ let SnapEditClient = class SnapEditClient {
             toUpstreamError(e);
         }
     }
-    async save(image, sessionId, previewMaskToSave, previewImageToSave, originalLargeImage) {
+    async save(image, sessionId, previewMaskFile, previewImageToSave, originalLargeImage) {
         const fd = new form_data_1.default();
-        fd.append('original_preview_image', image, { filename: 'image.jpg' });
-        fd.append('preview_mask_to_save', previewMaskToSave);
-        fd.append('preview_image_to_save', previewImageToSave);
-        fd.append('original_large_image', originalLargeImage);
+        if (image && image.length > 0) {
+            const previewBuf = await (0, sharp_1.default)(image)
+                .rotate()
+                .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+                .toBuffer();
+            fd.append('original_preview_image', previewBuf, {
+                filename: 'preview.jpg',
+                contentType: 'image/jpeg',
+            });
+        }
+        const maskBuf = await (0, sharp_1.default)(previewMaskFile).ensureAlpha().png().toBuffer();
+        const maskBase64 = maskBuf.toString('base64');
+        fd.append('preview_mask_to_save', maskBase64);
+        if (!sessionId) {
+            if (!previewImageToSave || previewImageToSave.length === 0) {
+                throw new Error('preview_image_to_save is required when session_id is not provided');
+            }
+            const prevResized = await (0, sharp_1.default)(previewImageToSave)
+                .rotate()
+                .resize({
+                width: 1200,
+                height: 1200,
+                fit: 'inside',
+                withoutEnlargement: true,
+            })
+                .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+                .toBuffer();
+            fd.append('preview_image_to_save', prevResized, {
+                filename: 'preview_result.jpg',
+                contentType: 'image/jpeg',
+            });
+        }
+        else if (previewImageToSave && previewImageToSave.length > 0) {
+            const prevResized = await (0, sharp_1.default)(previewImageToSave)
+                .rotate()
+                .resize({
+                width: 1200,
+                height: 1200,
+                fit: 'inside',
+                withoutEnlargement: true,
+            })
+                .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+                .toBuffer();
+            fd.append('preview_image_to_save', prevResized, {
+                filename: 'preview_result.jpg',
+                contentType: 'image/jpeg',
+            });
+        }
+        if (!originalLargeImage?.buffer) {
+            throw new Error('original_large_image file buffer missing');
+        }
+        const largeJpeg = await normalizeLargeToJpeg4000(originalLargeImage.buffer, originalLargeImage.mimetype);
+        const largeBase64 = largeJpeg.toString('base64');
+        fd.append('original_large_image', largeBase64);
         if (sessionId) {
             fd.append('session_id', sessionId);
         }
         try {
+            const headers = { ...fd.getHeaders(), ...this.getHeaders() };
+            console.log('SAVE request fields:', {
+                hasOriginalPreview: image && image.length > 0,
+                hasPreviewMask: previewMaskFile && previewMaskFile.length > 0,
+                hasPreviewImageToSave: previewImageToSave && previewImageToSave.length > 0,
+                hasOriginalLarge: originalLargeImage?.buffer && originalLargeImage.buffer.length > 0,
+                hasSessionId: !!sessionId,
+            });
             const res = await axios_1.default.post(this.baseUrl + ENDPOINTS.save, fd, {
-                headers: { ...fd.getHeaders(), ...this.getHeaders() },
-                timeout: 120000,
+                headers,
+                timeout: 120_000,
             });
             return res.data;
         }
         catch (e) {
+            console.error('SAVE error detail:', {
+                status: e?.response?.status,
+                statusText: e?.response?.statusText,
+                data: e?.response?.data,
+                headers: e?.response?.headers,
+            });
             toUpstreamError(e);
         }
     }

@@ -83,19 +83,26 @@ let SnapEditController = class SnapEditController {
         console.log('imgProcessedsed', imgProcessed);
         return (0, queue_1.runWithLimit)(() => (0, retry_1.withRetry)(() => this.client.erase(imgProcessed, maskBrush.buffer, body.session_id)));
     }
-    async save(filePreview, file, sessionId, previewMaskToSave, previewImageToSave, originalLargeImage) {
-        if (!previewMaskToSave) {
-            throw new common_1.BadRequestException('previewMaskToSave required');
+    async save(files, body) {
+        const { session_id } = body;
+        const maskFile = files.find((f) => f.fieldname === 'preview_mask_to_save');
+        const originalLargeImage = files.find((f) => f.fieldname === 'original_large_image');
+        const previewImageFile = files.find((f) => f.fieldname === 'preview_image_to_save');
+        const originalPreviewImage = files.find((f) => f.fieldname === 'original_preview_image');
+        if (!maskFile)
+            throw new common_1.BadRequestException('preview_mask_to_save file is required');
+        if (!originalLargeImage)
+            throw new common_1.BadRequestException('original_large_image is required');
+        if (!session_id && !previewImageFile) {
+            throw new common_1.BadRequestException('preview_image_to_save is required when session_id is not provided');
         }
-        if (!previewMaskToSave) {
-            throw new common_1.BadRequestException('previewImageToSave required. You can provide SessionId');
-        }
-        if (!originalLargeImage) {
-            throw new common_1.BadRequestException('originalLargeImage required');
-        }
-        assertFile(file, false);
-        const image = filePreview.find((f) => f.fieldname === 'original_preview_image');
-        return (0, queue_1.runWithLimit)(() => (0, retry_1.withRetry)(() => this.client.save(sessionId)));
+        const processedPreview = originalPreviewImage
+            ? await (0, image_processor_1.processImage)(originalPreviewImage.buffer, { maxSize: 1200 })
+            : undefined;
+        const previewImageToSave = previewImageFile
+            ? await (0, image_processor_1.processImage)(previewImageFile.buffer, { maxSize: 1200 })
+            : undefined;
+        return (0, queue_1.runWithLimit)(() => (0, retry_1.withRetry)(() => this.client.save(processedPreview || Buffer.alloc(0), session_id || '', maskFile.buffer, previewImageToSave || Buffer.alloc(0), originalLargeImage)));
     }
     async enhance(file, quality = 'fine') {
         assertFile(file, true);
@@ -132,14 +139,11 @@ __decorate([
 ], SnapEditController.prototype, "erase", null);
 __decorate([
     (0, common_1.Post)('save'),
-    __param(0, (0, common_1.UploadedFile)()),
-    __param(1, (0, common_1.UploadedFile)()),
-    __param(2, (0, common_1.Body)('sessionId')),
-    __param(3, (0, common_1.Body)('previewMaskToSave')),
-    __param(4, (0, common_1.Body)('previewImageToSave')),
-    __param(5, (0, common_1.Body)('originalLargeImage')),
+    (0, common_1.UseInterceptors)((0, platform_express_1.AnyFilesInterceptor)({ storage: multer.memoryStorage() })),
+    __param(0, (0, common_1.UploadedFiles)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, String, String, String, String]),
+    __metadata("design:paramtypes", [Array, Object]),
     __metadata("design:returntype", Promise)
 ], SnapEditController.prototype, "save", null);
 __decorate([

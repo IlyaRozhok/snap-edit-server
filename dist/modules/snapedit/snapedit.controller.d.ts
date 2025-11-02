@@ -4,7 +4,9 @@ export declare class SnapEditController {
     constructor(client: SnapEditClient);
     autoSuggest(file: Express.Multer.File, sessionId?: string): Promise<any>;
     erase(files: Array<Express.Multer.File>, body: any): Promise<any>;
-    save(filePreview: Express.Multer.File, file: Express.Multer.File, sessionId: string, previewMaskToSave: string, previewImageToSave: string, originalLargeImage: string): Promise<any>;
+    save(files: Express.Multer.File[], body: {
+        session_id?: string;
+    }): Promise<any>;
     enhance(file: Express.Multer.File, quality?: 'fine' | 'ultra'): Promise<any>;
     removeBg(file: Express.Multer.File): Promise<any>;
 }
