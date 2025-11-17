@@ -86,3 +86,17 @@ export const processImage = async (
   img = img.jpeg({ quality: 92, chromaSubsampling: '4:4:4' });
   return img.toBuffer();
 };
+
+export async function resizeMaskToMatchImage(
+  maskBuffer: Buffer,
+  targetWidth: number,
+  targetHeight: number,
+): Promise<Buffer> {
+  return sharp(maskBuffer)
+    .resize(targetWidth, targetHeight, {
+      fit: 'fill',
+      kernel: sharp.kernel.nearest,
+    })
+    .png()
+    .toBuffer();
+}

@@ -16,7 +16,8 @@ import { runWithLimit } from '../../common/utils/queue';
 import { withRetry } from '../../common/utils/retry';
 import { processImage } from '../../common/utils/image-processor';
 
-const FILE_MAX_SIZE = 50 * 1024 * 1024;
+const FILE_MAX_SIZE =
+  parseInt(process.env.APP_FILE_MAX_SIZE_MB || '50', 10) * 1024 * 1024;
 
 function assertFile(
   file: Express.Multer.File | undefined,
@@ -35,12 +36,12 @@ function assertFile(
   }
 }
 
-@Controller('v1')
+@Controller('snap_edit')
 @UseGuards(BearerGuard)
 export class SnapEditController {
   constructor(private readonly client: SnapEditClient) {}
 
-  @Post('auto-suggest')
+  @Post('auto_suggest')
   @UseInterceptors(
     FileInterceptor('image', { storage: multer.memoryStorage() }),
   )
@@ -59,81 +60,25 @@ export class SnapEditController {
   @UseInterceptors(AnyFilesInterceptor({ storage: multer.memoryStorage() }))
   async erase(
     @UploadedFiles() files: Array<Express.Multer.File>,
-    @Body() body: any,
+    @Body('session_id') sessionId?: string,
   ) {
-    const image = files.find((f) => f.fieldname === 'image');
+    const image = files.find(
+      (f) => f.fieldname === 'image' || f.fieldname === 'input_image',
+    );
     const maskBrush = files.find((f) => f.fieldname === 'mask_brush');
-    // const maskBase = files.find((f) => f.fieldname === 'mask_base');
 
     assertFile(image, true);
     assertFile(maskBrush, false);
+
+    // Process image up to 1200px (as per requirements for auto-suggest/erase)
     const imgProcessed = await processImage(image.buffer, { maxSize: 1200 });
-    console.log('imgProcessedsed', imgProcessed);
-    return runWithLimit(() =>
-      withRetry(() =>
-        this.client.erase(
-          imgProcessed,
-          maskBrush.buffer,
-          body.session_id,
-          // maskBase?.buffer,
-        ),
-      ),
-    );
-  }
-
-  @Post('save')
-  @UseInterceptors(AnyFilesInterceptor({ storage: multer.memoryStorage() }))
-  async save(
-    @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { session_id?: string },
-  ) {
-    const { session_id } = body;
-
-    const maskFile = files.find((f) => f.fieldname === 'preview_mask_to_save');
-    const originalLargeImage = files.find(
-      (f) => f.fieldname === 'original_large_image',
-    );
-    const previewImageFile = files.find(
-      (f) => f.fieldname === 'preview_image_to_save',
-    );
-    const originalPreviewImage = files.find(
-      (f) => f.fieldname === 'original_preview_image',
-    );
-
-    if (!maskFile)
-      throw new BadRequestException('preview_mask_to_save file is required');
-    if (!originalLargeImage)
-      throw new BadRequestException('original_large_image is required');
-
-    // preview_image_to_save обязателен, если нет session_id
-    if (!session_id && !previewImageFile) {
-      throw new BadRequestException(
-        'preview_image_to_save is required when session_id is not provided',
-      );
-    }
-
-    // Опционально сжать превьюшки
-    const processedPreview = originalPreviewImage
-      ? await processImage(originalPreviewImage.buffer, { maxSize: 1200 })
-      : undefined;
-
-    const previewImageToSave = previewImageFile
-      ? await processImage(previewImageFile.buffer, { maxSize: 1200 })
-      : undefined;
 
     return runWithLimit(() =>
       withRetry(() =>
-        this.client.save(
-          processedPreview || Buffer.alloc(0),
-          session_id || '',
-          maskFile.buffer,
-          previewImageToSave || Buffer.alloc(0),
-          originalLargeImage,
-        ),
+        this.client.erase(imgProcessed, maskBrush.buffer, sessionId),
       ),
     );
   }
-
   @Post('enhance')
   @UseInterceptors(
     FileInterceptor('image', { storage: multer.memoryStorage() }),
@@ -152,7 +97,7 @@ export class SnapEditController {
     );
   }
 
-  @Post('remove-bg')
+  @Post('remove_bg')
   @UseInterceptors(
     FileInterceptor('image', { storage: multer.memoryStorage() }),
   )
