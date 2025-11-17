@@ -15,6 +15,7 @@ import * as multer from 'multer';
 import { runWithLimit } from '../../common/utils/queue';
 import { withRetry } from '../../common/utils/retry';
 import { processImage } from '../../common/utils/image-processor';
+import sharp from 'sharp';
 
 const FILE_MAX_SIZE =
   parseInt(process.env.APP_FILE_MAX_SIZE_MB || '50', 10) * 1024 * 1024;
@@ -50,6 +51,7 @@ export class SnapEditController {
     @Body('session_id') sessionId?: string,
   ) {
     assertFile(file, true);
+    console.log('hello');
     const image = await processImage(file.buffer, { maxSize: 1200 });
     return runWithLimit(() =>
       withRetry(() => this.client.autoSuggest(image, sessionId)),
