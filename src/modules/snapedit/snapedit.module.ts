@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { SnapEditClient } from './snapedit-client.service';
+import { SnapEditClient } from './snapedit.service';
 import { SnapEditController } from './snapedit.controller';
 
 @Module({

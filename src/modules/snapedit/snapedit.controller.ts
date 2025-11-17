@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
 import { BearerGuard } from '../../common/guards/bearer.guard';
-import { SnapEditClient } from './snapedit-client.service';
+import { SnapEditClient } from './snapedit.service';
 import * as multer from 'multer';
 import { runWithLimit } from '../../common/utils/queue';
 import { withRetry } from '../../common/utils/retry';
@@ -70,7 +70,6 @@ export class SnapEditController {
     assertFile(image, true);
     assertFile(maskBrush, false);
 
-    // Process image up to 1200px (as per requirements for auto-suggest/erase)
     const imgProcessed = await processImage(image.buffer, { maxSize: 1200 });
 
     return runWithLimit(() =>
@@ -93,7 +92,7 @@ export class SnapEditController {
     if (quality !== 'fine' && quality !== 'ultra')
       throw new BadRequestException('Invalid quality');
     return runWithLimit(() =>
-      withRetry(() => this.client.enhance(image, quality)),
+      withRetry(() => this.client.enhance(image, quality, '0')),
     );
   }
 

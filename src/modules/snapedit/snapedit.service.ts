@@ -3,11 +3,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import sharp from 'sharp';
 import { extractErrorMessage } from '../../common/utils/extractErrorMessage';
-import {
-  convertHeicToJpeg,
-  resizeByLongestSide,
-  resizeMaskToMatchImage,
-} from '../../common/utils/image-processor';
+import { resizeMaskToMatchImage } from '../../common/utils/image-processor';
 
 const ENDPOINTS = {
   autoSuggest: '/object_removal/v1/auto_suggest',
@@ -27,25 +23,6 @@ function toUpstreamError(e: any) {
   err.response = e?.response;
   err.code = 'UPSTREAM_ERROR';
   throw err;
-}
-
-async function normalizeLargeToJpeg4000(
-  buf: Buffer,
-  mime?: string,
-): Promise<Buffer> {
-  let b = buf;
-
-  if (mime && /heic|heif/i.test(mime)) {
-    b = await convertHeicToJpeg(b);
-  }
-
-  b = await resizeByLongestSide(b, 4000);
-
-  b = await sharp(b)
-    .rotate()
-    .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
-    .toBuffer();
-  return b;
 }
 
 @Injectable()
@@ -89,12 +66,10 @@ export class SnapEditClient {
   async erase(image: Buffer, maskBrush: Buffer, sessionId?: string) {
     const fd = new FormData();
 
-    // Get image dimensions to resize mask to match
     const imageMetadata = await sharp(image).metadata();
     const imageWidth = imageMetadata.width || 1;
     const imageHeight = imageMetadata.height || 1;
 
-    // Resize mask to match image dimensions exactly
     const resizedMask = await resizeMaskToMatchImage(
       maskBrush,
       imageWidth,
@@ -116,13 +91,21 @@ export class SnapEditClient {
     }
   }
 
-  async enhance(image: Buffer, quality: 'fine' | 'ultra') {
+  async enhance(
+    image: Buffer,
+    quality: 'fine' | 'ultra',
+    faceModelIds: string,
+  ) {
     const fd = new FormData();
-    fd.append('image', image, { filename: 'image.jpg' });
-    fd.append('quality', quality);
+    fd.append('input_image', image, { filename: 'image.jpg' });
+    fd.append('face_model_ids', faceModelIds);
     try {
       const res = await axios.post(this.baseUrl + ENDPOINTS.enhance, fd, {
-        headers: { ...fd.getHeaders(), ...this.getHeaders() },
+        headers: {
+          ...fd.getHeaders(),
+          ...this.getHeaders(),
+          'X-ENHANCE-MODE': quality ?? '0',
+        },
         timeout: 180000,
       });
       return res.data;
