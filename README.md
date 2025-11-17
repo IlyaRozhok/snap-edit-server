@@ -58,18 +58,154 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-## Deployment
+## Deployment на AWS
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Предварительные требования
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+1. **AWS CLI** - установите и настройте:
+   ```bash
+   aws configure
+   ```
 
-```bash
-$ npm install -g mau
-$ mau deploy
+2. **Elastic Beanstalk CLI** (для простого деплоя):
+   ```bash
+   pip install awsebcli
+   ```
+
+3. **Docker** - для сборки контейнера
+
+### Переменные окружения
+
+Создайте файл `.env` со следующими переменными:
+
+```env
+APP_PORT=3000
+APP_BEARER_TOKEN=your-bearer-token-here
+APP_SNAPEDIT_BASE_URL=https://api.snapedit.io
+APP_SNAPEDIT_API_KEY=your-snapedit-api-key-here
+APP_FILE_MAX_SIZE_MB=50
+APP_QUEUE_LIMIT=10
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Вариант 1: Деплой на AWS Elastic Beanstalk (Рекомендуется для MVP)
+
+Elastic Beanstalk - самый простой способ для быстрого деплоя.
+
+#### Шаг 1: Подготовка
+
+```bash
+# Убедитесь, что все зависимости установлены
+npm install
+
+# Соберите приложение локально (опционально, для проверки)
+npm run build
+```
+
+#### Шаг 2: Инициализация Elastic Beanstalk
+
+```bash
+# Инициализируем EB (выполняется один раз)
+eb init -p docker snapedit-proxy --region us-east-1
+```
+
+#### Шаг 3: Создание и деплой environment
+
+```bash
+# Используйте готовый скрипт
+./scripts/deploy.sh snapedit-proxy-prod
+
+# Или вручную:
+eb create snapedit-proxy-prod \
+  --instance-type t3.small \
+  --platform docker \
+  --envvars APP_PORT=8080,APP_BEARER_TOKEN=your-token,APP_SNAPEDIT_API_KEY=your-key,APP_SNAPEDIT_BASE_URL=https://api.snapedit.io
+```
+
+#### Шаг 4: Настройка переменных окружения
+
+После создания environment, настройте переменные окружения через AWS Console или CLI:
+
+```bash
+eb setenv \
+  APP_BEARER_TOKEN=your-token \
+  APP_SNAPEDIT_API_KEY=your-key \
+  APP_SNAPEDIT_BASE_URL=https://api.snapedit.io \
+  APP_FILE_MAX_SIZE_MB=50 \
+  APP_QUEUE_LIMIT=10
+```
+
+#### Шаг 5: Последующие деплои
+
+```bash
+# Просто запустите скрипт
+./scripts/deploy.sh snapedit-proxy-prod
+
+# Или вручную:
+eb deploy snapedit-proxy-prod
+```
+
+#### Полезные команды
+
+```bash
+# Проверить статус
+eb status
+
+# Посмотреть логи
+eb logs
+
+# Открыть приложение в браузере
+eb open
+
+# Удалить environment
+eb terminate snapedit-proxy-prod
+```
+
+### Вариант 2: Деплой на AWS ECS Fargate
+
+Для более гибкого управления инфраструктурой можно использовать ECS Fargate.
+
+#### Шаг 1: Сборка и загрузка образа в ECR
+
+```bash
+./scripts/deploy-ecs.sh
+```
+
+#### Шаг 2: Создание ECS кластера и сервиса
+
+Следуйте инструкциям в скрипте или используйте AWS Console для создания:
+- ECS Cluster
+- Task Definition
+- ECS Service
+- Application Load Balancer
+
+### Локальный запуск с Docker
+
+```bash
+# Сборка образа
+docker build -t snapedit-proxy .
+
+# Запуск контейнера
+docker run -p 3000:3000 --env-file .env snapedit-proxy
+
+# Или с docker-compose
+docker-compose up
+```
+
+### Мониторинг и логи
+
+- **Elastic Beanstalk**: Используйте `eb logs` или AWS Console
+- **CloudWatch**: Автоматически собирает логи из Elastic Beanstalk
+- **Health Checks**: Настроены автоматически в `.ebextensions/01-nodejs.config`
+
+### Масштабирование
+
+Elastic Beanstalk автоматически настроен на масштабирование от 1 до 2 инстансов. Для изменения:
+
+```bash
+eb scale 2  # Увеличить до 2 инстансов
+```
+
+Или через AWS Console: Elastic Beanstalk → Configuration → Capacity
 
 ## Resources
 
