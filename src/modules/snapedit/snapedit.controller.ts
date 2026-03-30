@@ -9,7 +9,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
-import { BearerGuard } from '../../common/guards/bearer.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt.guard';
+import { TokenDeductInterceptor } from '../../common/interceptors/token-deduct.interceptor';
 import { SnapEditClient } from './snapedit.service';
 import * as multer from 'multer';
 import { runWithLimit } from '../../common/utils/queue';
@@ -38,7 +39,8 @@ function assertFile(
 }
 
 @Controller('snap_edit')
-@UseGuards(BearerGuard)
+@UseGuards(JwtAuthGuard)
+@UseInterceptors(TokenDeductInterceptor)
 export class SnapEditController {
   constructor(private readonly client: SnapEditClient) {}
 
