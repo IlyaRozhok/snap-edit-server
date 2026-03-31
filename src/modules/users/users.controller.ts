@@ -19,16 +19,6 @@ export class UsersController {
     return req.user;
   }
 
-  @Delete('me')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete current user account' })
-  @ApiResponse({ status: 204, description: 'Account deleted successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized — JWT token missing or invalid' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async deleteMe(@Request() req: { user: User }): Promise<void> {
-    await this.usersService.deleteById(req.user.id);
-  }
-
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user by ID' })
