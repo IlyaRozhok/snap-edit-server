@@ -1,5 +1,5 @@
-import { Controller, Get, Delete, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Delete, UseGuards, Request, HttpCode, HttpStatus, Param, ParseUUIDPipe } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
@@ -27,5 +27,17 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async deleteMe(@Request() req: { user: User }): Promise<void> {
     await this.usersService.deleteById(req.user.id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete user by ID' })
+  @ApiParam({ name: 'id', description: 'User UUID', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  @ApiResponse({ status: 204, description: 'User deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid UUID format' })
+  @ApiResponse({ status: 401, description: 'Unauthorized — JWT token missing or invalid' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async deleteById(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.usersService.deleteById(id);
   }
 }
