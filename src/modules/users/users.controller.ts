@@ -43,15 +43,6 @@ export class UsersController {
     return this.usersService.addCredits(dto.userId, dto.amount);
   }
 
-  @Delete('me')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete current user account and all associated data' })
-  @ApiResponse({ status: 204, description: 'Account deleted successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized — JWT token missing or invalid' })
-  async deleteMe(@Request() req: { user: User }): Promise<void> {
-    await this.usersService.deleteById(req.user.id);
-  }
-
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user by ID' })
