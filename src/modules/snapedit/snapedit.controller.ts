@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  UseGuards,
   UseInterceptors,
   UploadedFile,
   Body,
@@ -9,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOperation,
@@ -17,6 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { SnapEditClient } from './snapedit.service';
 import { UsersService } from '../users/users.service';
 import * as multer from 'multer';
@@ -103,6 +106,8 @@ class SnapEditResponseDto {
 }
 
 @ApiTags('snap_edit')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('snap_edit')
 export class SnapEditController {
   constructor(
