@@ -8,6 +8,7 @@ async function bootstrap() {
   const PORT = process.env.APP_PORT ?? 3000;
   const app = await NestFactory.create(AppModule);
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.setGlobalPrefix('api', { exclude: ['docs', 'docs-json', 'health'] });
 
   const config = new DocumentBuilder()
     .setTitle('Snap Edit API')
