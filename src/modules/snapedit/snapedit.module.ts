@@ -2,13 +2,11 @@ import { Module } from '@nestjs/common';
 import { SnapEditClient } from './snapedit.service';
 import { SnapEditController } from './snapedit.controller';
 import { UsersModule } from '../users/users.module';
-import { EventHistoryModule } from '../event-history/event-history.module';
-import { TokenDeductInterceptor } from '../../common/interceptors/token-deduct.interceptor';
 
 @Module({
-  imports: [UsersModule, EventHistoryModule],
+  imports: [UsersModule],
   controllers: [SnapEditController],
-  providers: [SnapEditClient, TokenDeductInterceptor],
+  providers: [SnapEditClient],
   exports: [SnapEditClient],
 })
 export class SnapEditModule {}
