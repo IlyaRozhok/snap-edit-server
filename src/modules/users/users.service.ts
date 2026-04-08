@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, AuthProvider } from './entities/user.entity';
@@ -50,5 +50,26 @@ export class UsersService {
 
   async deductToken(userId: string): Promise<void> {
     await this.usersRepository.decrement({ id: userId }, 'tokens', 1);
+  }
+
+  /** Check credits > 0, deduct 1, return remaining count. Throws 402 if no credits. */
+  async useCredit(userId: string): Promise<number> {
+    const user = await this.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    if (user.tokens <= 0) {
+      throw new HttpException(
+        { error: { code: 'INSUFFICIENT_CREDITS', message: 'No credits remaining' } },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+    await this.usersRepository.decrement({ id: userId }, 'tokens', 1);
+    return user.tokens - 1;
+  }
+
+  async addCredits(id: string, amount: number): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    await this.usersRepository.increment({ id }, 'tokens', amount);
+    return this.usersRepository.findOne({ where: { id } }) as Promise<User>;
   }
 }
