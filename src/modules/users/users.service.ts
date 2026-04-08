@@ -51,4 +51,11 @@ export class UsersService {
   async deductToken(userId: string): Promise<void> {
     await this.usersRepository.decrement({ id: userId }, 'tokens', 1);
   }
+
+  async addCredits(id: string, amount: number): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    await this.usersRepository.increment({ id }, 'tokens', amount);
+    return this.usersRepository.findOne({ where: { id } }) as Promise<User>;
+  }
 }
